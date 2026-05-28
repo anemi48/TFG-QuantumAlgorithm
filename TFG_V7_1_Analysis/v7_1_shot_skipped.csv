@@ -1,0 +1,13 @@
+case,mode,qubits,op_count,reason
+04_1d_clustered_medium,adjacency,23,604,exact statevector shots limited to 16 qubits; case has 23
+04_1d_clustered_medium,laplacian,23,908,exact statevector shots limited to 16 qubits; case has 23
+05_1d_long_clustered_blocks,adjacency,41,1397,exact statevector shots limited to 16 qubits; case has 41
+05_1d_long_clustered_blocks,laplacian,41,2137,exact statevector shots limited to 16 qubits; case has 41
+07_2d_small_diagonal_block,adjacency,24,508,exact statevector shots limited to 16 qubits; case has 24
+07_2d_small_diagonal_block,laplacian,24,728,exact statevector shots limited to 16 qubits; case has 24
+08_2d_medium_clustered_obstacles,adjacency,33,831,exact statevector shots limited to 16 qubits; case has 33
+08_2d_medium_clustered_obstacles,laplacian,33,1151,exact statevector shots limited to 16 qubits; case has 33
+09_2d_rectangular_window,adjacency,47,1388,exact statevector shots limited to 16 qubits; case has 47
+09_2d_rectangular_window,laplacian,47,1948,exact statevector shots limited to 16 qubits; case has 47
+10_3d_small_clustered_obstacles,adjacency,61,1587,exact statevector shots limited to 16 qubits; case has 61
+10_3d_small_clustered_obstacles,laplacian,61,2099,exact statevector shots limited to 16 qubits; case has 61
