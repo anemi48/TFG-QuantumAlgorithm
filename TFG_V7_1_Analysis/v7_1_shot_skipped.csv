@@ -11,3 +11,21 @@ case,mode,qubits,op_count,reason
 09_2d_rectangular_window,laplacian,47,1948,exact statevector shots limited to 16 qubits; case has 47
 10_3d_small_clustered_obstacles,adjacency,61,1587,exact statevector shots limited to 16 qubits; case has 61
 10_3d_small_clustered_obstacles,laplacian,61,2099,exact statevector shots limited to 16 qubits; case has 61
+11_1d_dual_clustered_gaps,adjacency,51,2029,exact statevector shots limited to 16 qubits; case has 51
+11_1d_dual_clustered_gaps,laplacian,51,3197,exact statevector shots limited to 16 qubits; case has 51
+12_1d_staggered_clustered_barriers,adjacency,60,2771,exact statevector shots limited to 16 qubits; case has 60
+12_1d_staggered_clustered_barriers,laplacian,60,4143,exact statevector shots limited to 16 qubits; case has 60
+13_2d_corridor_clusters,adjacency,45,1283,exact statevector shots limited to 16 qubits; case has 45
+13_2d_corridor_clusters,laplacian,45,1951,exact statevector shots limited to 16 qubits; case has 45
+14_2d_rooms_and_walls,adjacency,60,2024,exact statevector shots limited to 16 qubits; case has 60
+14_2d_rooms_and_walls,laplacian,60,2776,exact statevector shots limited to 16 qubits; case has 60
+15_2d_grouped_islands,adjacency,79,3308,exact statevector shots limited to 16 qubits; case has 79
+15_2d_grouped_islands,laplacian,79,4476,exact statevector shots limited to 16 qubits; case has 79
+16_2d_narrow_passages,adjacency,75,2816,exact statevector shots limited to 16 qubits; case has 75
+16_2d_narrow_passages,laplacian,75,4160,exact statevector shots limited to 16 qubits; case has 75
+17_2d_large_clustered_office,adjacency,96,4439,exact statevector shots limited to 16 qubits; case has 96
+17_2d_large_clustered_office,laplacian,96,5947,exact statevector shots limited to 16 qubits; case has 96
+18_2d_rectangular_window_clusters,adjacency,94,3734,exact statevector shots limited to 16 qubits; case has 94
+18_2d_rectangular_window_clusters,laplacian,94,5154,exact statevector shots limited to 16 qubits; case has 94
+19_3d_dual_room_clusters,both,114,nan,qubits 114 > cap 100
+20_3d_layered_obstacle_bands,both,134,nan,qubits 134 > cap 100

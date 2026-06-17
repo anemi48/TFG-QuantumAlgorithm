@@ -1,0 +1,128 @@
+% Requires \usepackage{listings} in the thesis preamble.
+\section{Circuit encoding}
+
+The implementations in this repository share the same search-space encoding introduced in the previous section.  The index register labels the admissible window starts
+\[
+    i \in \{0,\ldots,|S|-1\},
+\]
+and each index is interpreted through the fixed row-major ordering of the start-coordinate set \(S\).  The main difference between versions is how the cost or validity information associated with each index is used after this encoding has been prepared.
+
+In the versions that explicitly represent the grid and load the selected window, the circuit uses three principal registers: a grid register \(n\) of \(|\Omega_{\mathbf N}|\) qubits, an index register \(idx\) of
+\[
+    q_{idx}
+    =
+    \max\left(1,\left\lceil \log_2 |S| \right\rceil\right)
+\]
+qubits, and a work register \(m\) of \(|\Omega_{\mathbf M}|\) qubits.  The extra maximum is used in the code so that the degenerate case \(|S|=1\) is still represented by one qubit.
+
+The obstacle configuration is classical input data.  In the explicit-grid circuits it is loaded into the register \(n\) by applying \(X\) gates to the qubits corresponding to occupied cells.  The following code fragment is the pattern used in the later multidimensional versions:
+
+\begin{lstlisting}[language=Python, caption={Classical obstacle loading into the grid register.}]
+def prepare_grid_register(qc, n, N, occupied_coords):
+    for q in [
+        coord_to_index(normalize_coord(c, len(N)), N)
+        for c in occupied_coords
+    ]:
+        qc.x(n[q])
+\end{lstlisting}
+
+The index register is not generally prepared with Hadamard gates on all its qubits, because \(|S|\) is often not a power of two.  Instead, the notebooks prepare the exact state
+\begin{equation}
+    \frac{1}{\sqrt{|S|}}
+    \sum_{i = 0}^{|S| - 1}
+    |i\rangle,
+\end{equation}
+with zero amplitude on the padded computational states \(i \geq |S|\).  In code, with \(W=|S|\), this is implemented as:
+
+\begin{lstlisting}[language=Python, caption={Valid-index state preparation.}]
+def prepare_valid_index_superposition(qc, idx, W):
+    IDX = len(idx)
+    amps = np.zeros(2**IDX, dtype=complex)
+    amps[:W] = 1 / np.sqrt(W)
+    qc.initialize(amps, idx)
+\end{lstlisting}
+
+The multidimensional geometry is separated from the linear qubit layout.  Candidate starts are enumerated as Cartesian products, and each window is converted to the corresponding row-major grid-qubit indices:
+
+\begin{lstlisting}[language=Python, caption={Enumeration of candidate starts and loaded window cells.}]
+def valid_starts_nd(N, M):
+    ranges = [range(N[d] - M[d] + 1) for d in range(len(N))]
+    return list(product(*ranges))
+
+def window_qubits_nd(start, N, M):
+    ranges = [range(M[d]) for d in range(len(N))]
+    qubits = []
+    for offset in product(*ranges):
+        coord = tuple(start[d] + offset[d] for d in range(len(N)))
+        qubits.append(coord_to_index(coord, N))
+    return qubits
+\end{lstlisting}
+
+The reversible loader \(U_{\mathrm{load}}\) computes the selected window into the work register by XOR.  Its action is
+\begin{equation}
+    U_{\mathrm{load}}
+    \bigl(
+    |g\rangle_n |i\rangle_{idx} |0\rangle_m
+    \bigr)
+    =
+    |g\rangle_n |i\rangle_{idx} |b_i\rangle_m.
+\end{equation}
+More generally, because the operation is XOR-based,
+\begin{equation}
+    U_{\mathrm{load}}
+    \bigl(
+    |g\rangle_n |i\rangle_{idx} |y\rangle_m
+    \bigr)
+    =
+    |g\rangle_n |i\rangle_{idx} |y \oplus b_i\rangle_m,
+\end{equation}
+so applying the same block twice uncomputes \(m\).  The implementation uses equality controls on \(idx=i\) and the corresponding grid qubit \(n_j\).  A Gray-order traversal is used in the optimized versions to reduce the number of temporary \(X\) gates needed for zero-controls:
+
+\begin{lstlisting}[language=Python, caption={Reversible window loader used by the explicit-grid versions.}]
+def apply_window_loader(qc, n, idx, m, starts, N, M, order_valid):
+    IDX = len(idx)
+    current_zero_mask = [False] * IDX
+
+    for i in order_valid:
+        bits = [(i >> b) & 1 for b in range(IDX)]
+        target_zero_mask = [bits[b] == 0 for b in range(IDX)]
+
+        for b in range(IDX):
+            if current_zero_mask[b] != target_zero_mask[b]:
+                qc.x(idx[b])
+                current_zero_mask[b] = target_zero_mask[b]
+
+        for j, n_pos in enumerate(window_qubits_nd(starts[i], N, M)):
+            controls = [idx[b] for b in range(IDX)] + [n[n_pos]]
+            append_mcx(qc, controls, m[j])
+
+    for b in range(IDX):
+        if current_zero_mask[b]:
+            qc.x(idx[b])
+\end{lstlisting}
+
+Thus the explicit-loader circuit coherently evaluates the content of every admissible candidate window in superposition.  Later algorithmic layers differ between versions, but they use this same encoded search space: the index register labels the candidate window starts, and the loaded work register exposes the corresponding occupancy pattern so that all-zero windows can be marked, phased, scored, postselected, or amplified.
+
+For example, in V4 the loaded work register directly receives a phase proportional to the Hamming cost
+\[
+    C(i)
+    =
+    \sum_{w\in\Omega_{\mathbf M}}
+    g(a_i+w),
+\]
+because each occupied cell in \(m\) receives the same phase:
+
+\begin{lstlisting}[language=Python, caption={V4 cost phase after loading the window.}]
+def apply_cost_phase(qc, m, theta):
+    for q in m:
+        qc.p(theta, q)
+\end{lstlisting}
+
+In V5, the same loader is used twice, once for \(i\) and once for a shifted neighbouring window \(i+1\), so that the phase can depend on a finite difference of neighbouring costs.  In V7.1, the hardware-oriented quantum-walk version also uses the loader inside each Trotter step: it loads the current window, applies a phase only when \(m=0\cdots0\), and then uncomputes the work register.
+
+There are two important exceptions to the three-register description.  V6 keeps the same start-index encoding but compiles a classical phase profile directly onto the index register and then applies a \(W\)-dimensional QFT embedded in the \(2^{q_{idx}}\)-dimensional register.  V7 is an exact continuous-time quantum-walk model: it constructs the window-start graph and the valid-window defect Hamiltonian classically, then embeds \(\exp(-iHt)\) as a dense unitary on the index register.  These versions still use the same set \(S\), the same row-major indexing, and the same validity condition \(C(i)=0\), but they do not carry the full grid and work registers in the final circuit.
+
+All the code used in this thesis, together with additional exploratory notebooks and analysis scripts, is available in the GitHub repository \texttt{JulenCasajus/TFG-QuantumAlgorithm}:
+\[
+    \texttt{https://github.com/JulenCasajus/TFG-QuantumAlgorithm}.
+\]
